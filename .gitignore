@@ -1,0 +1,5 @@
+telegram-upload.json
+telegram-upload.session
+*.tar.gz
+Logs/
+tmp/
