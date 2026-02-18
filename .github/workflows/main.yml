@@ -1,0 +1,63 @@
+name: 🚀 Secure Public Downloader
+
+on:
+  repository_dispatch:
+    types: [download_task]
+
+jobs:
+  secure_download:
+    runs-on: ubuntu-latest
+    
+    # استخدام صورتك الجاهزة (تأكد من تعديل اسم المستخدم)
+    container:
+      image: ghcr.io/USERNAME/pupilc-downloader:latest
+
+    steps:
+    # 1. استعادة الجلسة من الخزنة الآمنة (Secrets)
+    # لا أحد يرى محتوى Secrets هنا، النظام فقط يقوم بحقنها
+    - name: 🔓 Restore Secrets
+      run: |
+        mkdir -p ~/.config
+        
+        # استعادة ملف الإعدادات
+        echo '${{ secrets.TELEGRAM_CONFIG }}' > ~/.config/telegram-upload.json
+        
+        # فك تشفير الجلسة وإعادتها لملفها الأصلي
+        echo '${{ secrets.TELEGRAM_SESSION }}' | base64 -d > ~/.config/telegram-upload.session
+        
+        echo "✅ Session restored securely."
+
+    # 2. تنفيذ التحميل (الروابط والمفاتيح تأتي من API Payload فلا تخزن في الكود)
+    - name: 🎬 Run Download Process
+      run: |
+        # استقبال البيانات من المشغل (API)
+        URL="${{ github.event.client_payload.url }}"
+        KEY="${{ github.event.client_payload.key }}"
+        NAME="${{ github.event.client_payload.name }}"
+        AGENT="${{ github.event.client_payload.agent }}"
+        
+        echo "Starting secure job for: $NAME"
+        
+        # تشغيل الأداة (RE موجودة مسبقاً في الـ Docker)
+        RE "$URL" \
+          --key "$KEY" \
+          --save-name "$NAME" \
+          -M format=mp4 \
+          --decryption-binary-path mp4decrypt \
+          --header "User-Agent: $AGENT" \
+          --tmp-dir ./tmp
+
+    # 3. الرفع والحذف
+    - name: 📤 Upload to Telegram
+      run: |
+        NAME="${{ github.event.client_payload.name }}"
+        FILE=$(find . -name "$NAME*.mp4" | head -n 1)
+        
+        if [ -f "$FILE" ]; then
+           # أداة الرفع ستقرأ ملف الجلسة الذي استعدناه في الخطوة 1
+           telegram-upload "$FILE"
+           echo "✅ Upload Complete"
+        else
+           echo "❌ File missing"
+           exit 1
+        fi
