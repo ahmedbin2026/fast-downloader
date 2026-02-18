@@ -10,7 +10,7 @@ jobs:
     
     # استخدام صورتك الجاهزة (تأكد من تعديل اسم المستخدم)
     container:
-      image: ghcr.io/USERNAME/pupilc-downloader:latest
+      image: ghcr.io/ahmedbin2026/pupilc-downloader:latest
 
     steps:
     # 1. استعادة الجلسة من الخزنة الآمنة (Secrets)
